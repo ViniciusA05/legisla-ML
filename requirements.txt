@@ -1,0 +1,23 @@
+# Manipulação de dados
+pandas
+numpy
+
+# Machine Learning
+scikit-learn
+xgboost
+joblib
+
+# NLP (processamento de texto em português)
+nltk
+spacy
+
+# Coleta de dados (scraper LexML)
+requests
+lxml
+
+# Visualização
+matplotlib
+seaborn
+
+# Notebook de análise
+jupyter
