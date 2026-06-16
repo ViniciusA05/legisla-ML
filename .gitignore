@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===== LegislaML — específico do projeto =====
+# Dados (pesados e regeneráveis pelo scraper) — mantemos só os .gitkeep
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Modelos treinados
+*.pkl
+*.joblib
+
+# Modelo de português do spaCy, se baixado localmente
+pt_core_news_sm/
