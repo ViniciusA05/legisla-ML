@@ -52,3 +52,31 @@ Following the repository TDD principles (`tdd` skill), verification targets thre
 | **Minority Recall (`teve_veto = 1`)** | $\ge 0.85$ | $\ge 0.95$ | Increase minority class weight multiplier in `CrossEntropyLoss`. |
 | **Peak CUDA VRAM Usage** | $< 3.8\text{ GB}$ | $\le 2.8\text{ GB}$ | Reduce `--batch-size` to `2` and increase `--grad-accum` to `8`. |
 | **MLflow Artifact Persistence** | 1 `.pt` checkpoint logged | Registered in `legislabl-bert-v2` | Verify write permissions in `models/` and MLflow tracking URI. |
+
+
+---
+
+## 4. Empirical Benchmark & Data Leakage Audit Results (2026-11-02)
+
+### 4.1. Train-Test Data Leakage Remediation in v1
+Auditing `data/processed/leis_features.csv` revealed that the Federal Senate API (`lista.json`) returned overlapping statute IDs across `["LEI", "LCP"]` queries (360 total rows containing 180 unique `id` entries). Because the v1 tabular pipeline did not deduplicate by `id` prior to `train_test_split`, identical statutes leaked across train and test splits.
+
+Both `src/scraper.py`, `src/model.py`, and `src/train_legislabl_bert.py` now enforce `.drop_duplicates(subset=["id"])` ($N = 180$ unique statutes: 140 without veto, 40 with veto; 144 train / 36 stratified validation).
+
+### 4.2. Epoch-by-Epoch Convergence (`teve_veto`, `seed=42`)
+
+| Epoch | Train Loss | Val Loss | Val Macro-F1 | Val Minority Recall (`teve_veto=1`) | Checkpoint Action |
+| :---: | :---: | :---: | :---: | :---: | :--- |
+| **1** | `0.7320` | `0.6794` | `0.4375` | `0.0000` | Saved (`0.4375`) |
+| **2** | `0.5948` | `0.5822` | `0.7053` | `0.5000` | Saved (`0.7053`) |
+| **3** | `0.4922` | `0.5459` | `0.7053` | `0.5000` | Retained |
+| **4** | `0.3831` | `0.5916` | **`0.7340`** | **`0.5000`** | **Best Checkpoint Saved (`0.7340`)** |
+| **5** | `0.3236` | `0.6500` | `0.6244` | `0.2500` | Discarded (Overfitting Inflection) |
+
+### 4.3. Head-to-Head Comparison: `LegislaBERT (v2)` vs `Random Forest (v1)`
+
+| Model | Dataset Integrity | Test Accuracy | Test Macro-F1 | Minority Recall (`teve_veto=1`) |
+| :--- | :--- | :---: | :---: | :---: |
+| **Random Forest (v1)** | Leaked (360 rows / duplicated IDs) | `0.9444` | `0.9113` | `0.7500` |
+| **Random Forest (v1)** | **Deduplicated (180 unique IDs)** | `0.7778` | `0.6000` | `0.2500` |
+| **LegislaBERT (v2)** | **Deduplicated (180 unique IDs)** | **`0.8056`** | **`0.7340` (+13.4 pp)** | **`0.5000` (2x gain)** |

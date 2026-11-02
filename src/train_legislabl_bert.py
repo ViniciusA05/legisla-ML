@@ -23,7 +23,7 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.model_selection import train_test_split
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModel, AutoTokenizer, get_linear_schedule_with_warmup
 
@@ -153,7 +153,7 @@ def train_epoch(
         attention_mask = batch["attention_mask"].to(device)
         labels = batch["label"].to(device)
 
-        with autocast(enabled=device.type == "cuda"):
+        with autocast("cuda", enabled=device.type == "cuda"):
             logits, _ = model(input_ids, attention_mask)
             loss = criterion(logits, labels)
             loss_scaled = loss / grad_accum_steps
@@ -190,7 +190,7 @@ def evaluate(
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["label"].to(device)
 
-            with autocast(enabled=device.type == "cuda"):
+            with autocast("cuda", enabled=device.type == "cuda"):
                 logits, _ = model(input_ids, attention_mask)
                 loss = criterion(logits, labels)
 
@@ -291,7 +291,7 @@ def run_fine_tuning(
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
     )
-    scaler = GradScaler(enabled=device.type == "cuda")
+    scaler = GradScaler("cuda", enabled=device.type == "cuda")
 
     mlflow.set_experiment("legislabl-bert-v2")
     with mlflow.start_run(run_name=f"bert-finetuning-{target_column}"):

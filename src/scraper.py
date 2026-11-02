@@ -66,6 +66,7 @@ class LegislacaoScraper:
 
     def run_pipeline(self, start_year=2020, end_year=2026, limit_per_year=30):
         records = []
+        seen_ids = set()
         for year in range(start_year, end_year + 1):
             for sigla in ["LEI", "LCP"]:
                 laws = self.fetch_laws_by_year(year, sigla)
@@ -81,7 +82,7 @@ class LegislacaoScraper:
                         continue
                     
                     law_id = law.get("id")
-                    if not law_id:
+                    if not law_id or law_id in seen_ids:
                         continue
                     
                     metadata = self.fetch_law_metadata(law_id)
@@ -105,6 +106,7 @@ class LegislacaoScraper:
                     with open(os.path.join(self.raw_path, text_filename), "w", encoding="utf-8") as f:
                         f.write(text)
                         
+                    seen_ids.add(law_id)
                     records.append({
                         "id": law_id,
                         "tipo": law.get("tipo"),
@@ -119,12 +121,12 @@ class LegislacaoScraper:
                     time.sleep(1)
                     
         if records:
-            df = pd.DataFrame(records)
+            df = pd.DataFrame(records).drop_duplicates(subset=["id"])
             df.to_csv(self.index_file, index=False, encoding="utf-8")
-            return len(records)
+            return len(df)
         return 0
 
 if __name__ == "__main__":
     scraper = LegislacaoScraper()
     total = scraper.run_pipeline(start_year=2020, end_year=2026, limit_per_year=30)
-    print(f"Coleta concluída. Total de leis baixadas: {total}")
+    print(f"Scraping complete. Total unique statutes collected: {total}")

@@ -89,7 +89,7 @@ class LegislacaoModelPipeline:
         if not os.path.exists(self.features_file):
             return False
             
-        df = pd.read_csv(self.features_file)
+        df = pd.read_csv(self.features_file).drop_duplicates(subset=["id"])
         
         X = df[self.feature_cols]
         
@@ -117,6 +117,6 @@ if __name__ == "__main__":
     pipeline = LegislacaoModelPipeline()
     success = pipeline.run_pipeline()
     if success:
-        print("Treinamento e avaliação concluídos com sucesso.")
+        print("Training and evaluation complete.")
     else:
-        print("Falha no pipeline de modelagem ou dados insuficientes.")
+        print("Modeling pipeline failed or insufficient data.")
