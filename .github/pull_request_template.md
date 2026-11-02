@@ -1,6 +1,6 @@
 ## Summary & SDD Feature Reference
 
-- **Feature / Scope**: `FEAT-XXX` (`docs/features/XXX-<slug>/`)
+- **Feature / Scope**: `FEAT-XXX` (`docs/specs/XXX-<slug>/`)
 - **SDD Phase**: [ ] Phase 1 (Specification Only: `SPEC.md` + `PLAN.md`) | [ ] Phase 2 (Implementation & Verification)
 - **Related Issue**: Closes #
 
