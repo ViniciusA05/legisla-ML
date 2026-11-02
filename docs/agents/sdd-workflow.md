@@ -1,11 +1,11 @@
 # SDD Workflow Playbook (Spec & Architecture Agent)
 
-Every feature in LegislaML follows a strict **Spec-Driven Development (SDD)** lifecycle inside `docs/features/XXX-<slug>/`.
+Every feature in LegislaML follows a strict **Spec-Driven Development (SDD)** lifecycle inside `docs/specs/XXX-<slug>/`.
 
 ## Directory Layout
 
 ```text
-docs/features/XXX-<slug>/
+docs/specs/XXX-<slug>/
 ├── SPEC.md            # Phase 1: Problem statement, requirements, math model, data contracts, trade-offs
 ├── PLAN.md            # Phase 1: Work Breakdown Structure (WBS), sequence, risks, contingencies
 ├── IMPLEMENTATION.md  # Phase 2: Module architecture, classes, hyperparameters, CLI interface
@@ -16,7 +16,7 @@ docs/features/XXX-<slug>/
 ## Phase 1: Specification & Deliberation Gate
 
 1. **Explore**: Inspect existing code, `GLOSSARY.md`, and `docs/adr/` to ground assumptions in repository facts.
-2. **Draft**: Create only `SPEC.md` and `PLAN.md` in `docs/features/XXX-<slug>/`.
+2. **Draft**: Create only `SPEC.md` and `PLAN.md` in `docs/specs/XXX-<slug>/`.
 3. **Commit**: Stage and commit the specification atomically: `docs(feat-XXX): add phase 1 spec and plan for <slug>`.
 4. **Completion Criterion (Hard Gate)**: Present the trade-offs, mathematical formulation, and quality gates to the Tech Lead, then **end the turn**. Zero production or test code files exist before explicit human sign-off.
 

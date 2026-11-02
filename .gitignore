@@ -230,3 +230,9 @@ data/processed/*
 
 # Modelo de português do spaCy, se baixado localmente
 pt_core_news_sm/
+
+# PyTorch checkpoints & MLflow tracking artifacts
+*.pt
+models/
+mlruns/
+mlflow.db

@@ -6,7 +6,7 @@ LegislaML is an AI and MLOps platform for predictive quality scoring, semantic d
 
 1. **Language**: Write all repository artifacts (code, docstrings, comments, SDD specs, ADRs, commit messages, and pull requests) in **English**. Preserve Portuguese exclusively for raw legal corpora, NLP tokenizers (`BERTimbau`/`spaCy`), and domain literals mapped in `GLOSSARY.md`.
 2. **Privacy & Path Hygiene**: Use repository-relative paths (`src/...`, `data/...`, `docs/...`) and functional role titles (`Tech Lead`, `ML Engineer`) across all tracked files. Keep personal names, local OS paths, and machine-specific hardware models out of version control.
-3. **Two-Phase SDD Gate**: Every feature (`FEAT-XXX`) lives in `docs/features/XXX-<slug>/` and executes in two gated phases:
+3. **Two-Phase SDD Gate**: Every feature (`FEAT-XXX`) lives in `docs/specs/XXX-<slug>/` and executes in two gated phases:
    - **Phase 1 (Specification)**: Draft only `SPEC.md` and `PLAN.md`, commit atomically (`docs(feat-XXX): ...`), and **halt execution** until the Tech Lead explicitly approves the spec.
    - **Phase 2 (Execution)**: After approval, implement code via TDD and complete `IMPLEMENTATION.md`, `TESTS.md`, and `QUICKSTART.md`.
 
