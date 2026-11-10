@@ -22,6 +22,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
 
       - name: Run Ruff Linter
         run: uvx ruff check --config pyproject.toml src/ tests/
@@ -42,6 +43,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
 
       - name: Install CPU dependencies
         run: |
@@ -61,7 +63,9 @@ jobs:
       - name: Publish Coverage Summary
         if: always()
         run: |
-          echo "### 🧪 LegislaML Unit Test & Coverage Report" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          tail -n 20 pytest-coverage.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f pytest-coverage.txt ]; then
+            echo "### 🧪 LegislaML Unit Test & Coverage Report" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            tail -n 25 pytest-coverage.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
