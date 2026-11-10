@@ -5,7 +5,7 @@
 | **Feature** | Continuous Integration, Automated TDD Suite, and Fast Quality Gates |
 | **Identifier** | `FEAT-002` |
 | **Role** | ML Engineer / Tech Lead |
-| **Status** | Phase 1 — Ready for Review |
+| **Status** | Phase 2 — Implemented & Verified |
 | **Date** | 2026-11-04 |
 | **Branch** | `feature/002-ci-tdd-pipeline` ➔ `develop` |
 
@@ -27,7 +27,7 @@ Following the successful implementation of `FEAT-001` (LegislaBERT Fine-Tuning a
 
 ### 2.1. Functional Requirements (FR)
 
-- **FR01 (Canonical Project Manifest)**: Standardize project dependencies, build configurations, and tool settings in `pyproject.toml`, paired with a cross-platform `uv.lock` for 100% deterministic reproducibility.
+- **FR01 (Canonical Project Manifest)**: Standardize project dependencies, build configurations, and tool settings in `pyproject.toml`, paired with `exclude-newer` timestamp cutoff in `[tool.uv]` for deterministic resolution without bloating git history.
 - **FR02 (Multi-Job Parallel CI)**: Construct a GitHub Actions workflow (`.github/workflows/ci.yml`) triggering on:
   - Pull requests targeting `develop` and `main`;
   - Pushes to `develop`.
@@ -81,7 +81,7 @@ The unit test asserts that applying deduplication over overlapping API queries e
 
 | Decision Area | Selected Option | Discarded Alternative | Engineering Rationale |
 | :--- | :--- | :--- | :--- |
-| **Package Manager** | **`uv` (Astral) + `uv.lock`** | Standard `pip` + `requirements.txt` | 10x-100x faster resolution written in Rust; deterministic cross-platform lockfile preventing dependency drift. |
+| **Package Manager** | **`uv` (Astral) + `exclude-newer`** | Standard `pip` + `requirements.txt` | 10x-100x faster resolution written in Rust; timestamp-pinned resolution preventing dependency drift without 7k-line lockfile bloat. |
 | **Linter & Formatter** | **`ruff`** | `flake8` + `black` + `isort` | Single dependency and unified configuration in `pyproject.toml`; sub-second execution speed. |
 | **Model Testing in CI** | **CPU Mocks & Synthetic Fixtures** | Real BERTimbau Downloads | Prevents downloading 435 MB on every run, eliminating network flakiness and slashing CI time to $<30\text{s}$. |
 | **Workflow Topology** | **Parallel Multi-Job** | Monolithic Single-Job Script | Enables parallel execution; provides distinct status badges for linting vs unit test failures in GitHub PRs. |
@@ -98,4 +98,4 @@ The unit test asserts that applying deduplication over overlapping API queries e
 | **Code Coverage (`pytest-cov`)** | $\ge 85\%$ | $\ge 90\%$ | Fail CI build via `--cov-fail-under=85`. |
 | **Ruff Lint & Format Check** | 0 errors / 0 warnings | Clean baseline | Fail `lint-and-format` job. |
 | **Total CI Execution Time** | $< 90\text{s}$ | $< 45\text{s}$ | Optimize caching or fixture initialization. |
-| **Deterministic Install** | `uv sync --frozen` | Zero build compilation | Enforce locked wheels in `uv.lock`. |
+| **Deterministic Install** | `uv sync` (`exclude-newer`) | Zero build compilation | Enforce reproducible cutoff in `pyproject.toml`. |
