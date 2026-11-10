@@ -1,7 +1,9 @@
-import pandas as pd
-import os
 import json
+import os
 import re
+
+import pandas as pd
+
 
 class LegislacaoFeatureExtractor:
     def __init__(self, base_path="data"):
@@ -58,7 +60,7 @@ class LegislacaoFeatureExtractor:
             return 0, 0
             
         try:
-            with open(meta_filepath, "r", encoding="utf-8") as f:
+            with open(meta_filepath, encoding="utf-8") as f:
                 data = json.load(f)
                 
             documentos = data.get("DetalheDocumento", {}).get("documentos", {}).get("documento", [])
