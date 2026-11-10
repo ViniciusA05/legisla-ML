@@ -1,10 +1,12 @@
-import requests
-import pandas as pd
-import time
-import os
 import json
-from bs4 import BeautifulSoup
+import os
+import time
 from urllib.parse import urljoin
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+
 
 class LegislacaoScraper:
     def __init__(self, base_path="data"):
