@@ -1,0 +1,67 @@
+name: CI Quality Gates
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-format:
+    name: Ruff Lint Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Run Ruff Linter
+        run: uvx ruff check --config pyproject.toml src/ tests/
+
+  unit-tests:
+    name: Unit Tests & Coverage (>=85%)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install CPU dependencies
+        run: |
+          uv venv .venv
+          uv pip install --python .venv/bin/python \
+            --extra-index-url https://download.pytorch.org/whl/cpu \
+            --index-strategy unsafe-best-match \
+            -r pyproject.toml --group dev
+
+      - name: Run Pytest with Coverage Gate
+        run: |
+          PYTHONPATH=. .venv/bin/pytest tests/unit/ \
+            --cov=src \
+            --cov-fail-under=85 \
+            --cov-report=term-missing | tee pytest-coverage.txt
+
+      - name: Publish Coverage Summary
+        if: always()
+        run: |
+          echo "### 🧪 LegislaML Unit Test & Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 20 pytest-coverage.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
