@@ -5,7 +5,7 @@
 | **Feature** | Containerized CPU inference microservice for the fine-tuned LegislaBERT classifier |
 | **Identifier** | `FEAT-003` |
 | **Role** | ML Engineer / Tech Lead |
-| **Status** | Phase 1 — Ready for Review |
+| **Status** | Phase 2 — Implemented & Verified |
 | **Date** | 2026-11-12 |
 | **Branch** | `feat/003-model-serving` ➔ `develop` |
 | **Depends on** | `FEAT-001` (fine-tuned checkpoint), `FEAT-002` (CI + TDD harness) |
@@ -40,7 +40,7 @@
 - **FR02 (Light Model Module)**: Move `LegislaBERTClassifier` and `LegislaBERTDataset` into `src/legislabert.py`. `src/train_legislabl_bert.py` re-exports both names so every existing import and every FEAT-002 test keeps working unchanged.
 - **FR03 (Offline Model Construction)**: Add `LegislaBERTClassifier.from_config(model_name, num_classes)` building the BERT backbone from `AutoConfig` (random init, **no weight download**), then loading the fine-tuned `model_state_dict` over it. Backbone weights shipped by Hugging Face are never needed at serving time because the checkpoint overwrites every parameter.
 - **FR04 (Checkpoint Contract)**: Load a checkpoint dict with keys `model_state_dict` and `config = {model_name, max_length}` (the exact schema written by `run_fine_tuning`). Validate before serving:
-  - missing keys, `max_length != 512`, or a `state_dict` that fails `strict=True` loading ➔ the process aborts at startup with a typed error (fail fast, never serve a half-loaded model);
+  - missing keys, `max_length != 512`, or a `state_dict` that fails `strict=True` loading ➔ raises a typed `CheckpointError` so the lifespan keeps the service in not-ready state (`/healthz = 200`, `/readyz = 503`, never serving traffic with a half-loaded model);
   - `optimizer_state_dict` is ignored and released immediately.
 - **FR05 (Checkpoint Export CLI)**: Provide `python -m src.serving.export --src <ckpt.pt> --dst <slim.pt> --target <teve_veto|instavel>` that strips the optimizer state and writes `{model_state_dict, config, metrics, target, sha256_of_source}`. Slim artifacts are the only files mounted into the container.
 - **FR06 (Inference Endpoints)**:
