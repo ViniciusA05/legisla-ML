@@ -25,7 +25,7 @@ jobs:
           cache-dependency-glob: "pyproject.toml"
 
       - name: Run Ruff Linter
-        run: uvx ruff check --config pyproject.toml src/ tests/
+        run: uvx ruff check --config pyproject.toml src/ tests/ scripts/
 
   unit-tests:
     name: Unit Tests & Coverage (>=85%)
@@ -51,7 +51,7 @@ jobs:
           uv pip install --python .venv/bin/python \
             --extra-index-url https://download.pytorch.org/whl/cpu \
             --index-strategy unsafe-best-match \
-            -r pyproject.toml --group dev
+            -r pyproject.toml --group dev --group serving
 
       - name: Run Pytest with Coverage Gate
         run: |
@@ -69,3 +69,34 @@ jobs:
             tail -n 25 pytest-coverage.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
+
+  docker-build:
+    name: Docker Build & Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build inference image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: legislaml-serving:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (liveness 200, readiness 503 without checkpoint, non-root)
+        run: bash scripts/smoke_container.sh legislaml-serving:ci
+
+      - name: Publish image size
+        if: always()
+        run: |
+          echo "### Inference image" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          docker image ls legislaml-serving:ci >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
