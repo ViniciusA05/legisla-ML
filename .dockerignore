@@ -1,0 +1,15 @@
+.git
+.github
+.agents
+.venv
+.pytest_cache
+.ruff_cache
+.coverage
+**/__pycache__
+data/
+models/
+*.pt
+notebooks/
+docs/
+docs-vault/
+tests/
