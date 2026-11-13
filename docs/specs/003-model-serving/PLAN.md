@@ -49,14 +49,14 @@ Dependencies are strictly sequential: each step produces the seam the next one t
 - [x] Run the full FEAT-002 suite on the untouched branch to record the baseline (13 tests, `88.74%`).
 - [x] Append `models/` and `*.pt` to `.gitignore`.
 - [x] Add dependency group `serving` to `pyproject.toml`: `fastapi`, `uvicorn[standard]`, `pydantic`, `httpx` (for `TestClient`, dev only), reusing the already-declared `torch`, `transformers`, `numpy`.
-- [ ] Commit: `chore(ci): add serving dependency group and ignore model artifacts`.
+- [x] Commit: `chore(ci): add serving dependency group and ignore model artifacts`.
 
 ### Step 3: Extract `src/legislabert.py` (Phase 2.2, refactor — FR01, FR02, I1, I7)
 - [x] **Red**: write `tests/unit/serving/test_encoding.py` asserting `head_tail_encode` boundaries (`n = 510`, `511`, `1000`, `0`) and that dataset output equals the function output (I1). Tests fail (module absent).
 - [x] **Green**: create `src/legislabert.py` with `head_tail_encode`, `LegislaBERTDataset`, `LegislaBERTClassifier` moved **verbatim**; dataset delegates to `head_tail_encode`.
 - [x] Update `src/train_legislabl_bert.py` to import and re-export both classes (`__all__` keeps `AutoModel` and `AutoTokenizer` importable, because FEAT-002 tests patch `bert_mod.AutoModel.from_pretrained`).
 - [x] **Refactor guard**: run the complete FEAT-002 suite without edits (QG1 / I7). Any required test edit is a spec violation and stops the step.
-- [ ] Commit: `refactor(model): extract legislabert module for shared training and serving use`.
+- [x] Commit: `refactor(model): extract legislabert module for shared training and serving use`.
 
 ### Step 4: Checkpoint Contract (Phase 2.3 — FR03, FR04, FR05, I5)
 - [x] **Red** `tests/unit/serving/test_checkpoint.py`:
@@ -65,7 +65,7 @@ Dependencies are strictly sequential: each step produces the seam the next one t
 - [x] **Green**: add `LegislaBERTClassifier.from_config(...)` (no download) and `src/serving/checkpoint.py::load_slim_checkpoint(path, expected_target)` using `torch.load(map_location="cpu", weights_only=True)` and `load_state_dict(strict=True)`.
 - [x] **Red/Green** `tests/unit/serving/test_checkpoint.py` and `src/serving/export.py`: strips `optimizer_state_dict`, adds `target` and `sha256_of_source`, sanitizes `metrics` to plain Python types (risk R1 in SPEC §7), refuses an unknown target.
 - [x] Validate on full-architecture artifact (local): `weights_only=True` loads the exported slim file. Record result in `IMPLEMENTATION.md`.
-- [ ] Commit: `feat(feat-003): add checkpoint contract and slim export cli`.
+- [x] Commit: `feat(feat-003): add checkpoint contract and slim export cli`.
 
 ### Step 5: Predictor (Phase 2.4 — FR06 core, I2, I3, I4, I6)
 - [x] **Red** `tests/unit/serving/test_inference.py` using the existing `MockBertBackbone` and `DeterministicMockTokenizer` fixtures:
@@ -76,7 +76,7 @@ Dependencies are strictly sequential: each step produces the seam the next one t
   - threshold boundary: `p1 == τ` ➔ label `1` (documented `>=` convention);
   - `truncated` and `n_tokens` for texts below/above 510 tokens.
 - [x] **Green** `src/serving/inference.py::Predictor` (`predict_one`, `predict_batch`) running under `torch.inference_mode()`, fp32, chunked to at most `MAX_BATCH`.
-- [ ] Commit: `feat(feat-003): add predictor with shared head-tail encoding`.
+- [x] Commit: `feat(feat-003): add predictor with shared head-tail encoding`.
 
 ### Step 6: FastAPI Application (Phase 2.5 — FR06–FR09)
 - [x] **Red** `tests/unit/serving/test_api.py` with `TestClient` and a fake predictor:
@@ -85,7 +85,7 @@ Dependencies are strictly sequential: each step produces the seam the next one t
   - `/healthz` is `200` even when the model failed to load; `/readyz` is `503` with `model_not_ready`, `200` after warm-up;
   - unexpected exception ➔ `500` with `internal` code and **no** stack trace or input echo (avoid leaking statute text in logs).
 - [x] **Green**: `src/serving/schemas.py`, `src/serving/settings.py`, `src/serving/app.py` (`create_app(predictor_factory)`, lifespan loads model and runs one warm-up forward pass, then flips readiness).
-- [ ] Commit: `feat(feat-003): add fastapi inference service`.
+- [x] Commit: `feat(feat-003): add fastapi inference service`.
 
 ### Step 7: Container Image (Phase 2.6 — FR10, NFR04, NFR05, NFR07)
 - [x] `Dockerfile` (multi-stage):
@@ -93,25 +93,27 @@ Dependencies are strictly sequential: each step produces the seam the next one t
   2. **runtime**: `python:3.12-slim`, copy the venv, tokenizer, and `src/`; create a non-root user; `ENV HF_HUB_OFFLINE=1`, `PYTHONUNBUFFERED=1`; `HEALTHCHECK` on `/healthz`; `CMD uvicorn src.serving.app:app --host 0.0.0.0 --port ${PORT}` (single worker).
 - [x] `.dockerignore`: `.git`, `data/`, `models/`, `notebooks/`, `docs-vault/`, `tests/`, `__pycache__`, `.venv`.
 - [x] `scripts/smoke_container.sh`: starts the image **without** a checkpoint and asserts `/healthz = 200` and `/readyz = 503` (QG5).
-- [ ] Commit: `feat(feat-003): add cpu inference dockerfile and smoke script`.
+- [x] Commit: `feat(feat-003): add cpu inference dockerfile and smoke script`.
 
 ### Step 8: CI Integration (Phase 2.7 — FR11, QG3, QG4, QG5)
 - [x] Update `unit-tests` to install `--group serving` and run `tests/unit/` (including `tests/unit/serving/`) with the unchanged `--cov-fail-under=85`.
 - [x] Add job `docker-build` (parallel, `needs` none): `docker/setup-buildx-action`, build with GHA layer cache, run `scripts/smoke_container.sh`, print `docker image ls` into `$GITHUB_STEP_SUMMARY`.
-- [ ] Commit: `ci(ci): add serving tests and docker build smoke job`.
+- [x] Commit: `ci(ci): add serving tests and docker build smoke job`.
 
 ### Step 9: Real-Checkpoint Validation & Benchmark (Phase 2.8 — QG6, NFR02–NFR05)
 - [x] Locally export a full-architecture 110M-parameter checkpoint to a slim file with `--target teve_veto` and validate `weights_only=True` loading.
 - [x] Run the Uvicorn server offline with the slim file and confirm `/readyz = 200` and RSS memory (`~1.0 GB` <= `1.5 GB`).
-- [ ] Sanity check with the trained `.pt` (deferred until trained artifact is mounted): score held-out validation split and confirm Macro-F1 parity.
+- [ ] **OPEN (QG6)** Sanity check with the trained `.pt` (deferred until the trained artifact is available): score the held-out validation split and confirm Macro-F1 parity. Blocks promotion of `develop` to `main`.
 - [x] `scripts/bench_serving.py`: 30 sequential requests with 512-token inputs plus a batch of 16; recorded p50 (`0.588 s`), p95 (`0.705 s`), p99 (`0.796 s`), batch-16 (`9.066 s`), RSS (`~1.0 GB`).
 - [x] Contingency if p95 > 3 s: not needed (`0.705 s <= 3.0 s`).
 
 ### Step 10: SDD Closure & Merge (Phase 2.9)
 - [x] Write `IMPLEMENTATION.md` (module map, class signatures, env contract exactly as implemented), `TESTS.md` (test inventory per invariant I1–I7, quality gates with measured numbers), `QUICKSTART.md` (export ➔ build ➔ run ➔ `curl` examples).
 - [x] Update `docs/specs/003-model-serving/SPEC.md` status to `Phase 2 — Implemented & Verified`.
-- [ ] Commit: `docs(feat-003): complete phase 2 implementation, tests, and quickstart specs`.
-- [ ] Open PR to `develop` with `.github/pull_request_template.md`; after merge, prune the local and remote branches per `docs/agents/git-and-pr.md`.
+- [x] Commit: `docs(feat-003): complete phase 2 implementation, tests, and quickstart specs`.
+- [x] Open PR #7 to `develop` with `.github/pull_request_template.md`.
+- [ ] After merge, prune the local and remote branches per `docs/agents/git-and-pr.md`.
+- [ ] Follow-up spec `FEAT-004` (serving hardening): concurrency limiter, dynamic padding, `.gitattributes` (`eol=lf`), `ruff format --check` in CI, optional MLflow Registry loading. Deliberately out of scope for this PR.
 
 ---
 

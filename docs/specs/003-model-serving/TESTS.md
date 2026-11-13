@@ -3,7 +3,7 @@
 | Metadata | Detail |
 | :--- | :--- |
 | **Feature** | `FEAT-003` |
-| **Status** | Phase 2 — Implemented; gates marked below as verified or pending |
+| **Status** | Phase 2 — Implemented; QG1–QG5 and QG7 verified, **QG6 open** |
 | **Command** | `PYTHONPATH=. .venv/bin/pytest tests/unit --cov=src --cov-fail-under=85` |
 
 ---
@@ -55,9 +55,9 @@ All unit tests are network-free, GPU-free, and weight-free (mock backbone `d = 7
 | QG1 | FEAT-002 tests pass unmodified | ✅ verified | 13/13 pass; no existing test file modified |
 | QG2 | I1–I6 each covered | ✅ verified | §2 |
 | QG3 | Coverage ≥ 85% total and for `src/serving/` | ✅ verified | 92.15% total; every serving module ≥ 90% |
-| QG4 | CI `unit-tests` < 90 s | ⏳ pending first CI run | Local suite takes ≈ 14–16 s; the CI baseline was 49 s with dependency install, expected to grow with the serving group |
-| QG5 | `docker build` succeeds; no-checkpoint container gives `healthz 200` / `readyz 503` | ⏳ **pending** | Docker is not available in this WSL distro (Docker Desktop WSL integration disabled), so the image was **not built locally**. The CI `docker-build` job is the first real build. The same behaviour (healthz 200 / readyz 503 without checkpoint) is verified in-process by `test_failed_model_load_keeps_liveness_but_never_ready`. |
-| QG6 | Real slim checkpoint: readiness, benchmark | ⚠️ **partial** | No trained checkpoint exists in this clone. The real architecture was validated with a **random-initialised** checkpoint (§5). End-to-end parity with the reported Macro-F1 `0.7340` is **not verified** and requires the trained `.pt`. |
+| QG4 | CI `unit-tests` < 90 s | ✅ verified in CI | PR #7 run: `Unit Tests & Coverage (>=85%)` finished in **50 s** (baseline before this feature: 49 s) |
+| QG5 | `docker build` succeeds; no-checkpoint container gives `healthz 200` / `readyz 503` | ✅ verified in CI | PR #7 `Docker Build & Smoke Test` job: `healthz=200 readyz=503`, `Smoke test passed (non-root uid=10001)`. Docker is unavailable in the local WSL distro, so the first real build happened in CI. |
+| QG6 | Real slim checkpoint: readiness, benchmark | 🔴 **OPEN — blocks promotion of `develop` to `main`** | No trained checkpoint exists in this clone. The real architecture was validated with a **random-initialised** checkpoint (§5). End-to-end parity with the reported Macro-F1 `0.7340` is **not verified** and requires the trained `.pt`. |
 | QG7 | Lint clean, no personal data or machine paths | ✅ verified | `ruff` clean; tracked files use repo-relative paths |
 
 ---
@@ -73,7 +73,7 @@ Setup: real `neuralmind/bert-base-portuguese-cased` tokenizer and config (offlin
 | Batch of 16 (one request) | — | **9.07 s** (≈ 0.57 s/item; no batch speed-up on CPU) | informational |
 | Resident memory after warm-up | ≤ 1.5 GB | **≈ 1.0 GB** (1,017,480 KB) | ✅ met |
 | Slim checkpoint size | — | 435,750,784 B (≈ 416 MiB) | informational |
-| Image size | ≤ 2.0 GB | **not measured** (no local Docker) | ⏳ pending first CI/local build |
+| Image size | ≤ 2.0 GB | **not measured** (the CI job only writes it to the step summary, not the log) | ⏳ read it from the `docker-build` step summary or a local build |
 | Strict loading of a full-architecture state dict via `from_config` | I5 | succeeded | ✅ |
 | Slim file loads with `weights_only=True` | SPEC risk R1 | succeeded (NumPy-free after sanitisation) | ✅ |
 
@@ -83,7 +83,7 @@ Caveats: single host, single run, loopback client, `p99` from only 30 samples.
 
 ## 6. Remaining Verification (must run outside this environment)
 
-1. Push the branch and confirm the three CI jobs are green; record `unit-tests` duration (QG4), image size, and smoke output (QG5).
+1. ~~Push the branch and confirm the three CI jobs are green~~ — done (QG4 and QG5 recorded above). Still to record: the image size from the `docker-build` step summary.
 2. With the trained `models/best_legislabl_bert_teve_veto.pt`:
    ```bash
    python -m src.serving.export --src models/best_legislabl_bert_teve_veto.pt --dst models/slim_teve_veto.pt --target teve_veto
