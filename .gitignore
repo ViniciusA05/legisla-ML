@@ -237,3 +237,7 @@ models/
 mlruns/
 mlflow.db
 docs-vault
+
+# Model artifacts (checkpoints are mounted, never committed)
+models/
+*.pt

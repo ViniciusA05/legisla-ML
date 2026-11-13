@@ -25,8 +25,17 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from torch.amp import GradScaler, autocast
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from transformers import AutoModel, AutoTokenizer, get_linear_schedule_with_warmup
+
+from src.legislabert import LegislaBERTClassifier, LegislaBERTDataset
+
+__all__ = [
+    "AutoModel",
+    "AutoTokenizer",
+    "LegislaBERTClassifier",
+    "LegislaBERTDataset",
+]
 
 
 def set_seed(seed: int = 42) -> None:
@@ -36,94 +45,6 @@ def set_seed(seed: int = 42) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-
-
-class LegislaBERTDataset(Dataset):
-    """
-    Statute dataset applying Head-Tail Window sampling.
-
-    Preserves the first `head_tokens` (Ementa and preliminary scope) and the
-    final `tail_tokens` (penalties, revocation, and enforcement clauses) within
-    the 512-token Transformer self-attention ceiling.
-    """
-
-    def __init__(
-        self,
-        texts,
-        labels,
-        tokenizer,
-        max_length: int = 512,
-        head_tokens: int = 128,
-        tail_tokens: int = 382,
-    ):
-        self.texts = list(texts)
-        self.labels = list(labels)
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.head_tokens = head_tokens
-        self.tail_tokens = tail_tokens
-
-    def __len__(self) -> int:
-        return len(self.texts)
-
-    def __getitem__(self, idx: int) -> dict:
-        text = str(self.texts[idx])
-        label = int(self.labels[idx])
-
-        tokens = self.tokenizer.encode(text, add_special_tokens=False)
-        usable_budget = self.max_length - 2  # Reserve slots for [CLS] and [SEP]
-
-        if len(tokens) > usable_budget:
-            head = tokens[: self.head_tokens]
-            tail = tokens[-(usable_budget - self.head_tokens) :]
-            selected_tokens = head + tail
-        else:
-            selected_tokens = tokens
-
-        input_ids = (
-            [self.tokenizer.cls_token_id]
-            + selected_tokens
-            + [self.tokenizer.sep_token_id]
-        )
-        attention_mask = [1] * len(input_ids)
-
-        padding_length = self.max_length - len(input_ids)
-        if padding_length > 0:
-            input_ids = input_ids + [self.tokenizer.pad_token_id] * padding_length
-            attention_mask = attention_mask + [0] * padding_length
-
-        return {
-            "input_ids": torch.tensor(input_ids, dtype=torch.long),
-            "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
-            "label": torch.tensor(label, dtype=torch.long),
-        }
-
-
-class LegislaBERTClassifier(nn.Module):
-    """
-    Contextual classification and latent embedding extraction module.
-
-    Extracts the `[CLS]` vector (h in R^768) from the final hidden layer of
-    BERTimbau and projects it through Dropout(0.3) to class logits.
-    """
-
-    def __init__(
-        self,
-        model_name: str = "neuralmind/bert-base-portuguese-cased",
-        num_classes: int = 2,
-        dropout_prob: float = 0.3,
-    ):
-        super().__init__()
-        self.bert = AutoModel.from_pretrained(model_name)
-        self.dropout = nn.Dropout(dropout_prob)
-        self.classifier = nn.Linear(self.bert.config.hidden_size, num_classes)
-
-    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor):
-        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-        cls_embedding = outputs.last_hidden_state[:, 0, :]
-        pooled = self.dropout(cls_embedding)
-        logits = self.classifier(pooled)
-        return logits, cls_embedding
 
 
 def calculate_class_weights(y: np.ndarray, num_classes: int = 2) -> torch.Tensor:
