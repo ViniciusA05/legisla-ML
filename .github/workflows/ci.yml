@@ -98,5 +98,5 @@ jobs:
         run: |
           echo "### Inference image" >> "$GITHUB_STEP_SUMMARY"
           echo '```text' >> "$GITHUB_STEP_SUMMARY"
-          docker image ls legislaml-serving:ci >> "$GITHUB_STEP_SUMMARY"
+          docker image ls legislaml-serving:ci | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

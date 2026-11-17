@@ -241,3 +241,6 @@ docs-vault
 # Model artifacts (checkpoints are mounted, never committed)
 models/
 *.pt
+
+# Local runtime artifacts (tokenizer cache)
+.local/

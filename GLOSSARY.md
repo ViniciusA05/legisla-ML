@@ -47,3 +47,7 @@ _Avoid_: Probability, confidence, risk percentage
 **Slim Checkpoint**:
 A serving artifact holding only model weights, configuration, validation metrics, and the Predictive Target it was trained for.
 _Avoid_: Model file, full checkpoint
+
+**Serving Parity**:
+Equivalence within a bounded numerical tolerance (`±0.002` Macro-F1) between the training-time validation score and the score produced by the serving stack from the exported Slim Checkpoint on the held-out validation split.
+_Avoid_: Bitwise metric identity, shadow accuracy
