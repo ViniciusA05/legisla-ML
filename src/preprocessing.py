@@ -1,8 +1,9 @@
-import pandas as pd
-import os
 import json
+import os
 import re
+
 import nltk
+import pandas as pd
 import spacy
 
 nltk.download("punkt", quiet=True)
@@ -56,7 +57,7 @@ class LegislacaoPreprocessor:
             if not os.path.exists(text_filepath):
                 continue
                 
-            with open(text_filepath, "r", encoding="utf-8") as f:
+            with open(text_filepath, encoding="utf-8") as f:
                 raw_text = f.read()
                 
             orig_clean, text_limpo, sentencas, tokens = self.process_document(raw_text)

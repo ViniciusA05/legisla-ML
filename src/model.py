@@ -1,15 +1,17 @@
-import pandas as pd
-import numpy as np
-import os
 import json
+import os
+
 import joblib
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
+import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
-from sklearn.metrics import classification_report, accuracy_score, f1_score, confusion_matrix
+
 
 class LegislacaoModelPipeline:
     def __init__(self, base_path="data"):
@@ -89,7 +91,7 @@ class LegislacaoModelPipeline:
         if not os.path.exists(self.features_file):
             return False
             
-        df = pd.read_csv(self.features_file)
+        df = pd.read_csv(self.features_file).drop_duplicates(subset=["id"])
         
         X = df[self.feature_cols]
         
@@ -117,6 +119,6 @@ if __name__ == "__main__":
     pipeline = LegislacaoModelPipeline()
     success = pipeline.run_pipeline()
     if success:
-        print("Treinamento e avaliação concluídos com sucesso.")
+        print("Training and evaluation complete.")
     else:
-        print("Falha no pipeline de modelagem ou dados insuficientes.")
+        print("Modeling pipeline failed or insufficient data.")
