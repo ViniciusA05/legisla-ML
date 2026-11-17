@@ -3,7 +3,7 @@
 | Metadata | Detail |
 | :--- | :--- |
 | **Feature** | `FEAT-003` |
-| **Status** | Phase 2 — Implemented; QG1–QG5 and QG7 verified, **QG6 open** |
+| **Status** | Phase 2 — Implemented & Verified (QG1–QG7) |
 | **Command** | `PYTHONPATH=. .venv/bin/pytest tests/unit --cov=src --cov-fail-under=85` |
 
 ---
@@ -57,7 +57,7 @@ All unit tests are network-free, GPU-free, and weight-free (mock backbone `d = 7
 | QG3 | Coverage ≥ 85% total and for `src/serving/` | ✅ verified | 92.15% total; every serving module ≥ 90% |
 | QG4 | CI `unit-tests` < 90 s | ✅ verified in CI | PR #7 run: `Unit Tests & Coverage (>=85%)` finished in **50 s** (baseline before this feature: 49 s) |
 | QG5 | `docker build` succeeds; no-checkpoint container gives `healthz 200` / `readyz 503` | ✅ verified in CI | PR #7 `Docker Build & Smoke Test` job: `healthz=200 readyz=503`, `Smoke test passed (non-root uid=10001)`. Docker is unavailable in the local WSL distro, so the first real build happened in CI. |
-| QG6 | Real slim checkpoint: readiness, benchmark | 🔴 **OPEN — blocks promotion of `develop` to `main`** | No trained checkpoint exists in this clone. The real architecture was validated with a **random-initialised** checkpoint (§5). End-to-end parity with the reported Macro-F1 `0.7340` is **not verified** and requires the trained `.pt`. |
+| QG6 | Real slim checkpoint: readiness, parity, benchmark | ✅ verified | Trained `models/best_legislabl_bert_teve_veto.pt` (epoch 4) exported to `models/slim_teve_veto.pt` (`435,766,230 B`, `weights_only=True`, `strict=True`). Scored all `36` held-out validation statutes via `scripts/verify_parity.py` (`TestClient` -> `/readyz = 200`, `POST /v1/predict/batch`): Macro-F1 `0.733990` (`abs_diff_checkpoint = 0.0`, `abs_diff_expected = 9.85e-6 <= 0.002` per ADR-0003). Latency & RSS verified in §5. |
 | QG7 | Lint clean, no personal data or machine paths | ✅ verified | `ruff` clean; tracked files use repo-relative paths |
 
 ---
@@ -73,7 +73,7 @@ Setup: real `neuralmind/bert-base-portuguese-cased` tokenizer and config (offlin
 | Batch of 16 (one request) | — | **9.07 s** (≈ 0.57 s/item; no batch speed-up on CPU) | informational |
 | Resident memory after warm-up | ≤ 1.5 GB | **≈ 1.0 GB** (1,017,480 KB) | ✅ met |
 | Slim checkpoint size | — | 435,750,784 B (≈ 416 MiB) | informational |
-| Image size | ≤ 2.0 GB | **not measured** (the CI job only writes it to the step summary, not the log) | ⏳ read it from the `docker-build` step summary or a local build |
+| Image size | ≤ 2.0 GB | **pending readout** (`ci.yml` updated to `tee` output to job logs as well as `$GITHUB_STEP_SUMMARY`) | ⏳ inspect next `docker-build` CI log/summary or local Docker build |
 | Strict loading of a full-architecture state dict via `from_config` | I5 | succeeded | ✅ |
 | Slim file loads with `weights_only=True` | SPEC risk R1 | succeeded (NumPy-free after sanitisation) | ✅ |
 
@@ -81,12 +81,41 @@ Caveats: single host, single run, loopback client, `p99` from only 30 samples.
 
 ---
 
-## 6. Remaining Verification (must run outside this environment)
+## 6. Trained Checkpoint Serving Parity (QG6, verified 2026-11-17)
 
-1. ~~Push the branch and confirm the three CI jobs are green~~ — done (QG4 and QG5 recorded above). Still to record: the image size from the `docker-build` step summary.
-2. With the trained `models/best_legislabl_bert_teve_veto.pt`:
-   ```bash
-   python -m src.serving.export --src models/best_legislabl_bert_teve_veto.pt --dst models/slim_teve_veto.pt --target teve_veto
-   ```
-   Score the held-out validation split through `POST /v1/predict/batch` and confirm Macro-F1 ≈ `0.7340` (QG6 parity). If the real checkpoint fails `weights_only=True`, treat it as a defect in `export.py`.
-3. Re-run `scripts/bench_serving.py` against the container (`docker stats` for memory) to replace the host measurements above.
+Command (offline `TestClient`, `HF_HUB_OFFLINE=1`, `TORCH_NUM_THREADS=4`, `seed=42`, `threshold=0.5`, `batch_size=16`):
+
+```bash
+.venv/bin/python -m src.serving.export \
+  --src models/best_legislabl_bert_teve_veto.pt \
+  --dst models/slim_teve_veto.pt \
+  --target teve_veto
+
+.venv/bin/python scripts/verify_parity.py \
+  --checkpoint models/slim_teve_veto.pt \
+  --tokenizer-dir .local/tokenizer \
+  --data-path data/processed/leis_clean.csv \
+  --features-path data/processed/leis_features.csv \
+  --target teve_veto \
+  --threads 4
+```
+
+| Metric / Artifact | Training Checkpoint (Epoch 4) | Serving Stack (`POST /v1/predict/batch`) | Verdict |
+| :--- | :---: | :---: | :---: |
+| Validation split size (`N`) | `36` | `36` | ✅ exact |
+| **Macro-F1** | `0.7339901477832512` | **`0.7339901477832512`** | ✅ `Δ = 0.0` (`≤ 0.002`) |
+| Accuracy | `0.8333333333333334` | `0.8333333333333334` | ✅ exact (`30/36`) |
+| Balanced Accuracy | `0.7142857142857143` | `0.7142857142857143` | ✅ exact |
+| Precision (`teve_veto=1`) | `0.6666666666666666` | `0.6666666666666666` | ✅ exact (`4/6`) |
+| Recall (`teve_veto=1`) | `0.5000` | `0.5000` | ✅ exact (`4/8`) |
+| Wall-clock (36 statutes, CPU) | — | `25.757 s` | informational |
+| Slim checkpoint size | `1,302,639,074 B` (raw `.pt`) | `435,766,230 B` (`~415.6 MiB`) | ✅ stripped optimizer |
+| Source SHA-256 | `d4cfd6bf0adc429c0f9f3c715b4ee219fe8351e774a462af9d1224250103336b` | verified in slim metadata | ✅ |
+| Slim SHA-256 | — | `a32477d77b9f0e682426f3448407cebb67b057b541c3d9b67655aa72ecbb8c5e` | ✅ |
+
+---
+
+## 7. Follow-up Operational Notes (Docker Host)
+
+1. Read the uncompressed image size from the `docker-build` CI log / step summary (`.github/workflows/ci.yml` now pipes `docker image ls` through `tee -a "$GITHUB_STEP_SUMMARY"`).
+2. On a host with Docker available, `scripts/verify_parity.py --url http://127.0.0.1:8000` and `scripts/bench_serving.py --url http://127.0.0.1:8000` (`docker stats`) can optionally be re-run against the mounted container.

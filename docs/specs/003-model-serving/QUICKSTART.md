@@ -101,7 +101,23 @@ Error shape (all non-2xx): `{"error": {"code": "invalid_input", "message": "..."
 
 Prints p50/p95/p99 for a 512-token request and the total time of a 16-item batch.
 
-## 7. Configuration
+## 7. Verify serving parity (QG6)
+
+Validate that the exported slim checkpoint reproduces the training-time validation Macro-F1 (`±0.002` per `docs/adr/0003-manual-checkpoint-parity-gate.md`) through the full FastAPI serving stack:
+
+```bash
+.venv/bin/python scripts/verify_parity.py \
+  --checkpoint models/slim_teve_veto.pt \
+  --tokenizer-dir .local/tokenizer \
+  --data-path data/processed/leis_clean.csv \
+  --features-path data/processed/leis_features.csv \
+  --target teve_veto \
+  --threads 4
+```
+
+To score against a running container or local `uvicorn` instance instead of the in-process `TestClient`, pass `--url http://127.0.0.1:8000`.
+
+## 8. Configuration
 
 | Variable | Default | Notes |
 | :--- | :--- | :--- |
@@ -114,7 +130,7 @@ Prints p50/p95/p99 for a 512-token request and the total time of a 16-item batch
 | `TORCH_NUM_THREADS` | `0` | `0` keeps the PyTorch default |
 | `PORT` | `8000` | container only |
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Cause | Fix |
 | :--- | :--- | :--- |
