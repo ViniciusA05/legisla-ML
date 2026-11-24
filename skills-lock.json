@@ -133,6 +133,12 @@
       "skillPath": "skills/misc/scaffold-exercises/SKILL.md",
       "computedHash": "0f8154a7be9fc5ebe6ae0550d520259fadfdd512c166cb7f137f8e697aae4017"
     },
+    "security-audit": {
+      "source": "cloudflare/security-audit-skill",
+      "sourceType": "github",
+      "skillPath": "skills/security-audit/SKILL.md",
+      "computedHash": "5e3e96a1e438d8f35fef0a1e38f02d4f00e2bdf910401b7dfe00e6779c6dac85"
+    },
     "setup-matt-pocock-skills": {
       "source": "mattpocock/skills",
       "sourceType": "github",
